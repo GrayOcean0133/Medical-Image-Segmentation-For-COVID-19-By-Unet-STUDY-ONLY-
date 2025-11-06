@@ -1,0 +1,37 @@
+# 训练数据集图片
+data_set/
+
+# 数据文件
+*.csv
+
+# 模型检查点文件
+checkpoints/
+*.pth
+
+# Python 缓存文件
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# 虚拟环境
+venv/
+env/
+ENV/
+
+# IDE 配置文件
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# 日志文件
+*.log
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# 临时文件
+*.tmp
+.DS_Store
