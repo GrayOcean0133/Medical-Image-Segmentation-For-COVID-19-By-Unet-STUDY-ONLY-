@@ -149,10 +149,10 @@ python test_training_pipeline.py
 ## 参考文档
 
 详细使用说明请查看：
-- [训练使用指南](TRAINING_USAGE.md)
-- [日志系统说明](LOGGING_REPORT.md)
-- [指标记录说明](METRICS_GUIDE.md)
-- [快速参考](QUICK_REFERENCE.md)
+- [训练使用指南](help/TRAINING_USAGE.md)
+- [日志系统说明](help/LOGGING_REPORT.md)
+- [指标记录说明](help/METRICS_GUIDE.md)
+- [快速参考](help/QUICK_REFERENCE.md)
 
 ## License
 
