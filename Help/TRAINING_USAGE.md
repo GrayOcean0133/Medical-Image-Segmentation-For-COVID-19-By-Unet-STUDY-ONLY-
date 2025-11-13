@@ -324,3 +324,6 @@ python src/train_ddp.py --log_interval 20 --log_batch_metrics
 cd /workspace/GrayOcean/code/Medic_Project
 python src/train_ddp.py --epochs 10
 ```
+
+
+## [-> 返回README](../README.md)

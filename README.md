@@ -31,11 +31,12 @@ Medical-Image-Segmentation-For-COVID-19-By-Unet-STUDY-ONLY-/
 │       ├── test_training_pipeline.py
 │       ├── test_model_save.py
 │       └── analyze_training.py   # 训练分析可视化
-├── TRAINING_USAGE.md             # 训练使用指南
-├── LOGGING_REPORT.md             # 日志系统说明
-├── METRICS_GUIDE.md              # 指标记录说明
-├── REALTIME_MONITORING_SUMMARY.md # 实时监控说明
-├── QUICK_REFERENCE.md            # 快速参考
+├── help/                          # 文档目录
+│   ├── TRAINING_USAGE.md         # 训练使用指南
+│   ├── LOGGING_REPORT.md         # 日志系统说明
+│   ├── METRICS_GUIDE.md          # 指标记录说明
+│   ├── REALTIME_MONITORING_SUMMARY.md # 实时监控说明
+│   └── QUICK_REFERENCE.md        # 快速参考
 └── README.md                     # 本文件
 ```
 

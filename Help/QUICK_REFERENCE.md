@@ -109,3 +109,6 @@ python analyze_training.py --batch_metrics
 
 ---
 **详细文档**: `METRICS_GUIDE.md` | **完整报告**: `REALTIME_MONITORING_SUMMARY.md`
+
+
+## [-> 返回README](../README.md)
