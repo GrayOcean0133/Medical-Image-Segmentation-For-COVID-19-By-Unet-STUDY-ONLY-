@@ -56,10 +56,10 @@ Epoch [15/200] 完成
 
 **自动生成**，每个epoch一行记录：
 
-| Epoch | Avg_Loss | Min_Batch_Loss | Max_Batch_Loss | Learning_Rate | Epoch_Time_Seconds | Best_Loss_So_Far | Is_Best_Model | Timestamp |
-|-------|----------|----------------|----------------|---------------|--------------------|--------------------|---------------|-----------|
-| 1 | 0.425316 | 0.285432 | 0.623571 | 0.00100000 | 14.52 | 0.425316 | True | 2025-11-06 10:30:15 |
-| 2 | 0.398245 | 0.268123 | 0.587234 | 0.00100000 | 14.38 | 0.398245 | True | 2025-11-06 10:30:30 |
+| Epoch | Train_Loss | Min_Batch_Loss | Max_Batch_Loss | Val_Loss | Val_Dice | Val_IoU | Learning_Rate | Epoch_Time_Seconds | Best_Dice_So_Far | Is_Best_Model | Timestamp |
+|-------|-----------|----------------|----------------|----------|----------|---------|---------------|--------------------|------------------|---------------|-----------|
+| 1 | 0.425316 | 0.285432 | 0.623571 | 0.410000 | 0.807000 | 0.678000 | 0.00100000 | 14.52 | 0.807000 | True | 2025-11-06 10:30:15 |
+| 2 | 0.398245 | 0.268123 | 0.587234 | 0.395000 | 0.815000 | 0.689000 | 0.00100000 | 14.38 | 0.815000 | True | 2025-11-06 10:30:30 |
 | ... | ... | ... | ... | ... | ... | ... | ... | ... |
 
 **用途**：
@@ -230,8 +230,8 @@ python
 >>> import matplotlib.pyplot as plt
 >>> df1 = pd.read_csv('metrics/epoch_metrics_20251106_103015.csv')
 >>> df2 = pd.read_csv('metrics/epoch_metrics_20251106_140520.csv')
->>> plt.plot(df1['Epoch'], df1['Avg_Loss'], label='LR=0.001')
->>> plt.plot(df2['Epoch'], df2['Avg_Loss'], label='LR=0.0001')
+>>> plt.plot(df1['Epoch'], df1['Train_Loss'], label='LR=0.001')
+>>> plt.plot(df2['Epoch'], df2['Train_Loss'], label='LR=0.0001')
 >>> plt.legend()
 >>> plt.savefig('lr_comparison.png')
 ```
@@ -387,7 +387,7 @@ def live_monitor(metrics_file, interval=10):
             # 绘制loss曲线
             plt.subplot(1, 2, 1)
             plt.cla()
-            plt.plot(df['Epoch'], df['Avg_Loss'], 'b-')
+            plt.plot(df['Epoch'], df['Train_Loss'], 'b-')
             plt.xlabel('Epoch')
             plt.ylabel('Loss')
             plt.title('Training Loss (Live)')
@@ -400,8 +400,8 @@ def live_monitor(metrics_file, interval=10):
             latest = df.iloc[-1]
             info = f"""
             Latest Epoch: {latest['Epoch']}
-            Avg Loss: {latest['Avg_Loss']:.6f}
-            Best Loss: {latest['Best_Loss_So_Far']:.6f}
+            Avg Loss: {latest['Train_Loss']:.6f}
+            Best Loss: {latest['Best_Dice_So_Far']:.6f}
             Learning Rate: {latest['Learning_Rate']:.8f}
             """
             plt.text(0.1, 0.5, info, fontsize=14, family='monospace')

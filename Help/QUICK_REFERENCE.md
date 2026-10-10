@@ -57,9 +57,9 @@ Epoch [10/200] - 进度 5.8% (10/171) - Batch Loss: 0.072156 - LR: 0.00100000
 ## CSV文件格式
 
 ### epoch_metrics_*.csv
-| Epoch | Avg_Loss | Min_Batch_Loss | Max_Batch_Loss | Learning_Rate | Epoch_Time_Seconds | Best_Loss_So_Far | Is_Best_Model |
-|-------|----------|----------------|----------------|---------------|--------------------|--------------------|---------------|
-| 1 | 0.425316 | 0.285432 | 0.623571 | 0.00100000 | 14.52 | 0.425316 | True |
+| Epoch | Train_Loss | Min_Batch_Loss | Max_Batch_Loss | Val_Loss | Val_Dice | Val_IoU | Learning_Rate | Epoch_Time_Seconds | Best_Dice_So_Far | Is_Best_Model | Timestamp |
+|-------|-----------|----------------|----------------|----------|----------|---------|---------------|--------------------|------------------|---------------|-----------|
+| 1 | 0.425316 | 0.285432 | 0.623571 | 0.410000 | 0.807000 | 0.678000 | 0.00100000 | 14.52 | 0.807000 | True | 2025-11-06 10:30:15 |
 
 ### batch_metrics_*.csv
 | Epoch | Batch | Loss | Learning_Rate |
@@ -86,13 +86,13 @@ import matplotlib.pyplot as plt
 df = pd.read_csv('metrics/epoch_metrics_TIMESTAMP.csv')
 
 # 绘制loss曲线
-plt.plot(df['Epoch'], df['Avg_Loss'])
+plt.plot(df['Epoch'], df['Train_Loss'])
 plt.xlabel('Epoch')
 plt.ylabel('Loss')
 plt.savefig('my_loss.png')
 
 # 查看最佳epochs
-print(df.nsmallest(5, 'Avg_Loss'))
+print(df.nsmallest(5, 'Train_Loss'))
 ```
 
 ## 常用命令组合

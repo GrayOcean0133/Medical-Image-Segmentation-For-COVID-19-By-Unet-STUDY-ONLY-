@@ -138,14 +138,20 @@ Medic_Project/
 | 列名 | 说明 | 示例 |
 |------|------|------|
 | Epoch | Epoch编号 | 1, 2, 3, ... |
-| Avg_Loss | 该epoch的平均loss | 0.425316 |
+| Train_Loss | 该epoch的平均训练loss | 0.425316 |
 | Min_Batch_Loss | 该epoch中最小的batch loss | 0.285432 |
 | Max_Batch_Loss | 该epoch中最大的batch loss | 0.623571 |
+| Val_Loss | 验证集损失（未启用验证时为 -1） | 0.410000 |
+| Val_Dice | 验证集 Dice（未启用验证时为 -1） | 0.807000 |
+| Val_IoU | 验证集 IoU（未启用验证时为 -1） | 0.678000 |
 | Learning_Rate | 当前学习率 | 0.00100000 |
 | Epoch_Time_Seconds | 该epoch训练时间（秒） | 14.52 |
-| Best_Loss_So_Far | 目前为止的最佳loss | 0.425316 |
+| Best_Dice_So_Far | 目前为止的最佳指标（有验证集时是 Dice，否则是训练损失） | 0.815000 |
 | Is_Best_Model | 是否为最佳模型 | True/False |
 | Timestamp | 时间戳 | 2025-11-06 10:30:15 |
+
+> 旧版 CSV 用的是 `Avg_Loss` / `Best_Loss_So_Far` 两个列名；
+> `src/test/analyze_training.py` 同时兼容新旧两种列名。
 
 ### Batch Metrics CSV 格式
 
@@ -236,14 +242,14 @@ print(df.describe())
 
 # 绘制loss曲线
 plt.figure(figsize=(10, 6))
-plt.plot(df['Epoch'], df['Avg_Loss'])
+plt.plot(df['Epoch'], df['Train_Loss'])
 plt.xlabel('Epoch')
 plt.ylabel('Loss')
 plt.title('Training Loss')
 plt.savefig('my_loss_curve.png')
 
 # 找出loss最低的5个epochs
-best_epochs = df.nsmallest(5, 'Avg_Loss')
+best_epochs = df.nsmallest(5, 'Train_Loss')
 print(best_epochs)
 ```
 
@@ -253,7 +259,7 @@ print(best_epochs)
 2. 插入图表 → 折线图
 3. 选择数据范围：
    - X轴：Epoch列
-   - Y轴：Avg_Loss列
+   - Y轴：Train_Loss列
 4. 自定义图表样式
 
 ---
@@ -283,8 +289,8 @@ df2 = pd.read_csv('metrics/epoch_metrics_run2.csv')
 
 # 绘制对比图
 plt.figure(figsize=(10, 6))
-plt.plot(df1['Epoch'], df1['Avg_Loss'], label='Run 1')
-plt.plot(df2['Epoch'], df2['Avg_Loss'], label='Run 2')
+plt.plot(df1['Epoch'], df1['Train_Loss'], label='Run 1')
+plt.plot(df2['Epoch'], df2['Train_Loss'], label='Run 2')
 plt.legend()
 plt.xlabel('Epoch')
 plt.ylabel('Loss')
@@ -318,7 +324,7 @@ ls -t epoch_metrics_*.csv | tail -n +4 | xargs rm -f
 # 在MetricsLogger._init_epoch_logger()中添加新列
 headers = [
     'Epoch',
-    'Avg_Loss',
+    'Train_Loss',
     'Val_Loss',  # 新增：验证集loss
     'Train_Acc',  # 新增：训练准确率
     ...
@@ -353,7 +359,7 @@ def watch_latest_metrics():
                 df = pd.read_csv(latest)
                 latest_row = df.iloc[-1]
                 print(f"\nEpoch {latest_row['Epoch']}: "
-                      f"Loss={latest_row['Avg_Loss']:.6f}, "
+                      f"Loss={latest_row['Train_Loss']:.6f}, "
                       f"LR={latest_row['Learning_Rate']:.8f}")
                 last_size = current_size
             time.sleep(5)
