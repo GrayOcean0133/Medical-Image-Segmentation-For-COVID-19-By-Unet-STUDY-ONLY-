@@ -54,6 +54,26 @@ def find_latest_metrics_file(metrics_type='epoch'):
     return latest
 
 
+# 旧版 CSV 用的是 Avg_Loss / Best_Loss_So_Far，新版改成 Train_Loss / Best_Dice_So_Far。
+# 两种列名都接受，避免读旧文件时直接 KeyError。
+COLUMN_ALIASES = {
+    'Train_Loss': ['Train_Loss', 'Avg_Loss'],
+    'Best_Dice_So_Far': ['Best_Dice_So_Far', 'Best_Loss_So_Far'],
+}
+
+
+def normalize_columns(df):
+    """把旧列名统一成新列名，返回处理后的 DataFrame。"""
+    for canonical, aliases in COLUMN_ALIASES.items():
+        if canonical in df.columns:
+            continue
+        for alias in aliases:
+            if alias in df.columns:
+                df = df.rename(columns={alias: canonical})
+                break
+    return df
+
+
 def analyze_epoch_metrics(csv_file):
     """分析epoch级别的训练指标"""
     print("=" * 80)
@@ -68,11 +88,22 @@ def analyze_epoch_metrics(csv_file):
         print(f"错误: 读取CSV文件失败: {e}")
         return
 
+    df = normalize_columns(df)
+    if 'Train_Loss' not in df.columns:
+        print(f"错误: 找不到损失列，实际列为: {list(df.columns)}")
+        return
+
+    # 是否有可用的验证集指标（旧文件没有这些列，或值为 -1）
+    has_val = ('Val_Dice' in df.columns) and (df['Val_Dice'] > 0).any()
+
     print(f"\n数据概览:")
     print(f"  总Epoch数: {len(df)}")
-    print(f"  最佳Loss: {df['Avg_Loss'].min():.6f} (Epoch {df.loc[df['Avg_Loss'].idxmin(), 'Epoch']})")
-    print(f"  最终Loss: {df['Avg_Loss'].iloc[-1]:.6f}")
+    print(f"  最佳Loss: {df['Train_Loss'].min():.6f} (Epoch {df.loc[df['Train_Loss'].idxmin(), 'Epoch']})")
+    print(f"  最终Loss: {df['Train_Loss'].iloc[-1]:.6f}")
     print(f"  总训练时间: {df['Epoch_Time_Seconds'].sum() / 3600:.2f}小时")
+    if has_val:
+        best_row = df.loc[df['Val_Dice'].idxmax()]
+        print(f"  最佳验证Dice: {best_row['Val_Dice']:.4f} (Epoch {int(best_row['Epoch'])})")
 
     # 创建输出目录
     output_dir = PROJECT_ROOT / "analysis"
@@ -83,8 +114,8 @@ def analyze_epoch_metrics(csv_file):
 
     # 子图1: 平均Loss曲线
     plt.subplot(2, 2, 1)
-    plt.plot(df['Epoch'], df['Avg_Loss'], 'b-', linewidth=2, label='Average Loss')
-    plt.plot(df['Epoch'], df['Best_Loss_So_Far'], 'r--', linewidth=1.5, label='Best Loss So Far', alpha=0.7)
+    plt.plot(df['Epoch'], df['Train_Loss'], 'b-', linewidth=2, label='Average Loss')
+    plt.plot(df['Epoch'], df['Best_Dice_So_Far'], 'r--', linewidth=1.5, label='Best Metric So Far', alpha=0.7)
     plt.xlabel('Epoch')
     plt.ylabel('Loss')
     plt.title('Training Loss Curve', fontsize=14, fontweight='bold')
@@ -94,7 +125,7 @@ def analyze_epoch_metrics(csv_file):
     # 子图2: Loss范围图 (Min, Avg, Max)
     plt.subplot(2, 2, 2)
     plt.fill_between(df['Epoch'], df['Min_Batch_Loss'], df['Max_Batch_Loss'], alpha=0.3, label='Loss Range')
-    plt.plot(df['Epoch'], df['Avg_Loss'], 'r-', linewidth=2, label='Avg Loss')
+    plt.plot(df['Epoch'], df['Train_Loss'], 'r-', linewidth=2, label='Avg Loss')
     plt.xlabel('Epoch')
     plt.ylabel('Loss')
     plt.title('Loss Range (Min/Avg/Max per Epoch)', fontsize=14, fontweight='bold')
@@ -126,12 +157,43 @@ def analyze_epoch_metrics(csv_file):
     plt.savefig(output_path, dpi=300, bbox_inches='tight')
     print(f"\n✓ Loss曲线图已保存: {output_path}")
 
+    # 1b. 验证集指标曲线（旧版 CSV 没有这几列，自动跳过）
+    if has_val:
+        plt.figure(figsize=(12, 5))
+
+        plt.subplot(1, 2, 1)
+        plt.plot(df['Epoch'], df['Val_Dice'], 'b-', marker='o', markersize=3, label='Val Dice')
+        plt.plot(df['Epoch'], df['Val_IoU'], 'g-', marker='s', markersize=3, label='Val IoU')
+        best_row = df.loc[df['Val_Dice'].idxmax()]
+        plt.axvline(x=best_row['Epoch'], color='r', linestyle='--', alpha=0.6,
+                    label=f"Best Dice {best_row['Val_Dice']:.4f} (Epoch {int(best_row['Epoch'])})")
+        plt.xlabel('Epoch')
+        plt.ylabel('Score')
+        plt.title('Validation Dice / IoU', fontsize=14, fontweight='bold')
+        plt.legend()
+        plt.grid(True, alpha=0.3)
+
+        plt.subplot(1, 2, 2)
+        plt.plot(df['Epoch'], df['Train_Loss'], 'b-', linewidth=2, label='Train Loss')
+        if 'Val_Loss' in df.columns:
+            plt.plot(df['Epoch'], df['Val_Loss'], 'r-', linewidth=2, label='Val Loss')
+        plt.xlabel('Epoch')
+        plt.ylabel('Loss')
+        plt.title('Train vs Validation Loss', fontsize=14, fontweight='bold')
+        plt.legend()
+        plt.grid(True, alpha=0.3)
+
+        plt.tight_layout()
+        val_output = output_dir / f'validation_analysis_{csv_file.stem}.png'
+        plt.savefig(val_output, dpi=300, bbox_inches='tight')
+        print(f"✓ 验证集指标图已保存: {val_output}")
+
     # 2. 详细统计分析
     plt.figure(figsize=(12, 6))
 
     # Loss改善分析
     plt.subplot(1, 2, 1)
-    loss_improvement = df['Avg_Loss'].diff() * -1  # 负值表示改善
+    loss_improvement = df['Train_Loss'].diff() * -1  # 负值表示改善
     plt.plot(df['Epoch'][1:], loss_improvement[1:], 'b-', linewidth=1.5)
     plt.axhline(y=0, color='r', linestyle='--', alpha=0.5)
     plt.xlabel('Epoch')
@@ -168,20 +230,22 @@ def analyze_epoch_metrics(csv_file):
         f.write(f"  平均每Epoch时间: {df['Epoch_Time_Seconds'].mean():.2f}秒\n\n")
 
         f.write("Loss统计:\n")
-        f.write(f"  初始Loss: {df['Avg_Loss'].iloc[0]:.6f}\n")
-        f.write(f"  最终Loss: {df['Avg_Loss'].iloc[-1]:.6f}\n")
-        f.write(f"  最佳Loss: {df['Avg_Loss'].min():.6f} (Epoch {df.loc[df['Avg_Loss'].idxmin(), 'Epoch']})\n")
-        f.write(f"  Loss改善: {(df['Avg_Loss'].iloc[0] - df['Avg_Loss'].iloc[-1]):.6f} ")
-        f.write(f"({((df['Avg_Loss'].iloc[0] - df['Avg_Loss'].iloc[-1]) / df['Avg_Loss'].iloc[0] * 100):.2f}%)\n\n")
+        f.write(f"  初始Loss: {df['Train_Loss'].iloc[0]:.6f}\n")
+        f.write(f"  最终Loss: {df['Train_Loss'].iloc[-1]:.6f}\n")
+        f.write(f"  最佳Loss: {df['Train_Loss'].min():.6f} (Epoch {df.loc[df['Train_Loss'].idxmin(), 'Epoch']})\n")
+        f.write(f"  Loss改善: {(df['Train_Loss'].iloc[0] - df['Train_Loss'].iloc[-1]):.6f} ")
+        f.write(f"({((df['Train_Loss'].iloc[0] - df['Train_Loss'].iloc[-1]) / df['Train_Loss'].iloc[0] * 100):.2f}%)\n\n")
 
         f.write("学习率:\n")
         f.write(f"  初始学习率: {df['Learning_Rate'].iloc[0]:.8f}\n")
         f.write(f"  最终学习率: {df['Learning_Rate'].iloc[-1]:.8f}\n\n")
 
         f.write("Top 5最佳Epochs:\n")
-        top5 = df.nsmallest(5, 'Avg_Loss')[['Epoch', 'Avg_Loss', 'Learning_Rate']]
+        top5 = df.nsmallest(5, 'Train_Loss')[['Epoch', 'Train_Loss', 'Learning_Rate']]
         for idx, row in top5.iterrows():
-            f.write(f"  Epoch {row['Epoch']:3d}: Loss={row['Avg_Loss']:.6f}, LR={row['Learning_Rate']:.8f}\n")
+            # iterrows() 会把整行升成 float，所以 Epoch 必须显式取整
+            f.write(f"  Epoch {int(row['Epoch']):3d}: Loss={row['Train_Loss']:.6f}, "
+                    f"LR={row['Learning_Rate']:.8f}\n")
 
     print(f"✓ 文本报告已保存: {report_path}")
     print("\n" + "=" * 80)

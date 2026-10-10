@@ -1,0 +1,19 @@
+# 运行环境依赖
+# 安装: pip install -r requirements.txt
+#
+# 注意：不依赖 albumentations。
+# 数据增强使用 torchvision.transforms.v2（随 torchvision 一起安装，
+# 且支持 image/mask 同步变换，见 src/data_loader.py 的 get_data_transforms）。
+
+torch>=2.0
+torchvision>=0.15
+numpy
+pillow
+
+# 训练指标分析与可视化（src/test/analyze_training.py）
+pandas
+matplotlib
+seaborn
+
+# 测试
+pytest

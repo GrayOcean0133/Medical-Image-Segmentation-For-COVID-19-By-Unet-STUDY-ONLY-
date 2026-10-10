@@ -6,7 +6,7 @@ import threading
 import logging
 from datetime import datetime
 from pathlib import Path
-from unet_model import Unet
+from checkpoint import load_model_from_checkpoint
 from predict import predict_single_image
 
 # tkinter标准库导入
@@ -66,10 +66,9 @@ class COVIDSegmentationGUI:
         """加载训练好的模型"""
         try:
             logging.info(f"开始加载模型: {self.model_path}")
-            model = Unet(in_channels=1, out_channels=1)
-            model.load_state_dict(torch.load(self.model_path, map_location=self.device))
-            model.to(self.device)
-            model.eval()
+            # 结构配置存在检查点里，避免和训练时的 features 不一致导致加载失败
+            model, ckpt = load_model_from_checkpoint(self.model_path, device=self.device)
+            logging.info(f"模型结构: {ckpt['config']}")
 
             total_params = sum(p.numel() for p in model.parameters())
             logging.info(f"模型加载成功，参数量: {total_params:,}")
